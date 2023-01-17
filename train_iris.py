@@ -7,7 +7,7 @@ import numpy as np
 from sklearn import datasets
 import matplotlib.pyplot as plt
 
-from utils import init_loss_graph
+from utils import init_loss_graph, downsample_metric_history
 
 
 # Draw losses on training - set to False for faster training
@@ -55,7 +55,7 @@ class IrisClassificationModel(ivy.Module):
 
 ivy.set_backend("torch")  # change to other backend
 model = IrisClassificationModel()
-optimizer = ivy.SGD(0.1)
+optimizer = ivy.Adam(0.01)
 
 # Initialize loss graph in matplotlib
 if INTERATIVE_LOSS_GRAPH:
@@ -66,7 +66,7 @@ batch_size = 32
 idx = 0
 last_loss_np = 0
 losses = []
-for step in range(150):
+for step in range(400):
     idx = (idx + 1) % (X_train.shape[0] // batch_size)
     xx = ivy.array(X_train[idx * batch_size : idx * batch_size + batch_size])
     yy = ivy.array(Y_train[idx * batch_size : idx * batch_size + batch_size])
@@ -82,7 +82,8 @@ for step in range(150):
     # Update loss graph
     loss_np = ivy.to_numpy(loss).item()
     losses.append(loss_np)
-    print("Step {} - loss {}".format(step, loss_np))
+    if step % 10 == 0:
+        print("Step {} - loss {}".format(step, loss_np))
     if INTERATIVE_LOSS_GRAPH:
         ax.scatter(step, loss_np, c="b", marker=".")
         if step > 0:
@@ -94,6 +95,8 @@ for step in range(150):
 # Draw final loss graph
 if not INTERATIVE_LOSS_GRAPH:
     ax, fig = init_loss_graph()
+    # Downsample loss history
+    losses = downsample_metric_history(losses, 10)
     for i, loss in enumerate(losses):
         ax.scatter(i, loss, c="b", marker=".")
         if i > 0:
